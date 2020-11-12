@@ -1,0 +1,14 @@
+*.o
+usb/*.o
+asmsyms.h
+kernel
+image
+createimage
+bootblock
+asmdefs
+.depend
+*~
+#*
+*.bak
+bochsout.txt
+serial.out
