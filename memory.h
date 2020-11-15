@@ -52,6 +52,13 @@ typedef struct {
 	uint32_t	swap_loc;
 	uint32_t	vaddr;
 	// Fill in ...
+	int		free;
+	int		pinned;
+	uint32_t[]      page_queue;
+	int             first;
+	int		last;
+	uint32_t	vaddr;
+	uint32_t	swaploc;
 } page_map_entry_t;
 
 
