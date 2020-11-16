@@ -169,10 +169,16 @@ void page_swap_out(int i){
 int page_replacement_policy(void){
  int i;
  for (i = first; i < PAGEABLE_PAGES; i++) {
-	 if (!page_map[i]->pinned) return i;
+	 if (!page_map[i]->pinned) {
+		 if (!page_map[i]->sec_chance) 
+			 return i;
+	 }
  }
  for (i = 0; i < last; i++) {
-	 if if (!page_map[i]->pinned) return i;
+	 if (!page_map[i]->pinned) {
+		 if (! page_map[i]->sec_chance)
+		 	return i; 
+	 }
  }
  return first; // never reaches this
 }
