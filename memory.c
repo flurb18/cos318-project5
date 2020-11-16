@@ -35,6 +35,10 @@ static uint32_t *kernel_pdir;
 static uint32_t *kernel_ptabs[N_KERNEL_PTS];
 
 //other global variables...
+// first page in page_map
+static int first;
+// last page in page_map
+static int last;
 
 /* Main API */
 
@@ -50,7 +54,21 @@ uint32_t get_tab_idx(uint32_t vaddr){
 
 /* TODO: Returns physical address of page number i */
 uint32_t* page_addr(int i){
+  page_map_entry_t* page = page_map[i];
+  uint32_t vaddr;
+  uint32_t offset;
+  uint32_t virtualpage;
+  uint32_t paddr;
 
+  assert (page != NULL);
+  vaddr = page -> vaddr;
+  // first get the most significant 12 bits (offset)
+  offset = (vaddr & MODE_MASK) & MODE_MASK; // not sure if need to shift
+  // virtual page is everything except offset
+  virtualpage = vaddr >> PAGE_TABLE_BITS; // again not sure if this is right
+  // use virtual page to get frame number
+  // concat frame number and offset
+  
 }
 
 /* Set flags in a page table entry to 'mode' */
