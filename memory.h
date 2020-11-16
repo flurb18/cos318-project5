@@ -52,6 +52,22 @@ typedef struct {
 	uint32_t	swap_loc;
 	uint32_t	vaddr;
 	// Fill in ...
+	int		free;
+	int		pinned;
+	
+	/*
+	// uncomment for extra credit implementation
+	// fifo with second chance
+	int             sec_chance; 
+	*/
+	
+	/*
+	// nru
+	// 0: not ref, not mod
+	// 1: not ref, mod
+	// 2: ref, not mod
+	// 3: ref, not mod
+	int		class; */
 } page_map_entry_t;
 
 
