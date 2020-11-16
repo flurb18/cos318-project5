@@ -35,6 +35,22 @@ static uint32_t *kernel_pdir;
 static uint32_t *kernel_ptabs[N_KERNEL_PTS];
 
 //other global variables...
+// first page in page_map
+static int first;
+// last page in page_map
+static int last;
+
+/*
+// uncomment for nru extra credit
+static page_map_entry_t class_zero[PAGEABLE_PAGES];
+static page_map_entry_t class_one[PAGEABLE_PAGES];
+static page_map_entry_t class_two[PAGEABLE_PAGES];
+static page_map_entry_t class_three[PAGEABLE_PAGES]; 
+
+static int zero_last;
+static int one_last;
+static int two_last;
+static int three_last; */
 
 /* Main API */
 
@@ -50,7 +66,8 @@ uint32_t get_tab_idx(uint32_t vaddr){
 
 /* TODO: Returns physical address of page number i */
 uint32_t* page_addr(int i){
-
+  return MEM_START + (i * PAGE_SIZE);
+  
 }
 
 /* Set flags in a page table entry to 'mode' */
@@ -162,5 +179,35 @@ void page_swap_out(int i){
 
 /* TODO: Decide which page to replace, return the page number  */
 int page_replacement_policy(void){
- 
+ int i;
+ for (i = first; i < PAGEABLE_PAGES; i++) {
+	 if (!page_map[i]->pinned) {
+		 // if (!page_map[i]->sec_chance) 
+			 return i;
+	 }
+ }
+ for (i = 0; i < last; i++) {
+	 if (!page_map[i]->pinned) {
+		 // if (! page_map[i]->sec_chance)
+		 	return i; 
+	 }
+ }
+ return first; // never reaches this
+
+ /*
+ // uncomment for nru implementation 
+ for (i = 0; i < zero_last; i++) {
+ 	if (!class_zero[i]->pinned) return i;
+ }
+ for (i = 0; i < one_last; i++) {
+ 	if (!class_one[i]->pinned) return i;
+ }
+ for (i = 0; i < two_last; i++) {
+ 	if (!class_two[i]->pinned) return i;
+ }
+ for (i = 0; i < three_last; i++) {
+ 	if (!class_three[i]->pinned) return i;
+ } 
+ return 0; */
+
 }
