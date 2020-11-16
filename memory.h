@@ -54,11 +54,10 @@ typedef struct {
 	// Fill in ...
 	int		free;
 	int		pinned;
+	// do we need this? what does it represent?
 	uint32_t[]      page_queue;
 	int             first;
 	int		last;
-	uint32_t	vaddr;
-	uint32_t	swaploc;
 } page_map_entry_t;
 
 
