@@ -1,7 +1,7 @@
 /* Author(s): <Your name here>
  * COS 318, Fall 2019: Project 5 Virtual Memory
  * Defines the memory manager for the kernel.
-*/
+ */
 
 #ifndef MEMORY_H
 #define MEMORY_H
@@ -49,9 +49,13 @@ enum {
 
 /* TODO: Structure of an entry in the page map */
 typedef struct {
-	uint32_t	swap_loc;
-	uint32_t	vaddr;
-	// Fill in ...
+  uint32_t	swap_loc;
+  uint32_t	vaddr;
+  bool_t is_free;
+  bool_t pinned;
+  
+  
+  // Fill in ...
 } page_map_entry_t;
 
 

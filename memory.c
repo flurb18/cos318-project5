@@ -50,7 +50,7 @@ uint32_t get_tab_idx(uint32_t vaddr){
 
 /* TODO: Returns physical address of page number i */
 uint32_t* page_addr(int i){
-
+  return (uint32_t *)(MEM_START + i * PAGE_SIZE);
 }
 
 /* Set flags in a page table entry to 'mode' */
@@ -110,7 +110,16 @@ void insert_ptab_dir(uint32_t * dir, uint32_t *tab, uint32_t vaddr,
  * Swap out a page if no space is available. 
  */
 int page_alloc(int pinned){
-  
+  int i;
+  for (i = 0; i < PAGEABLE_PAGES; i++) {
+    if (page_map[i].is_free) {
+      page_map[i].is_free = FALSE;
+      page_map[i].pinned = FALSE;
+      if (pinned)
+        page_map[i].pinned = TRUE;
+      return i;
+    }
+  }
 }
 
 /* TODO: Set up kernel memory for kernel threads to run.
@@ -119,14 +128,18 @@ int page_alloc(int pinned){
  * supposed to set up the page directory and page tables for the kernel.
  */
 void init_memory(void){
- 
+  int i;
+  kernel_pdir = page_addr(page_alloc(TRUE));
+  for (i = 0; i < N_KERNEL_PTS; i++) {
+    kernel_ptabs[i] = page_addr(page_alloc(TRUE));
+  }
 }
 
 
 /* TODO: Set up a page directory and page table for a new 
  * user process or thread. */
 void setup_page_table(pcb_t * p){
-  
+  uint32_t *pdir = page_addr(page_alloc(FALSE));
 }
 
 /* TODO: Swap into a free page upon a page fault.
