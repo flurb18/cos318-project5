@@ -117,9 +117,11 @@ int page_alloc(int pinned){
       page_map[i].pinned = FALSE;
       if (pinned)
         page_map[i].pinned = TRUE;
+      bzero((char *)page_addr(i), PAGE_SIZE);
       return i;
     }
   }
+  return 0;
 }
 
 /* TODO: Set up kernel memory for kernel threads to run.
@@ -129,9 +131,21 @@ int page_alloc(int pinned){
  */
 void init_memory(void){
   int i;
+  int ptab_idx;
+  uint32_t j = 0;
+  uint32_t mode;
   kernel_pdir = page_addr(page_alloc(TRUE));
   for (i = 0; i < N_KERNEL_PTS; i++) {
     kernel_ptabs[i] = page_addr(page_alloc(TRUE));
+    insert_ptab_dir(kernel_pdir, kernel_ptabs[i], (uint32_t) kernel_ptabs[i],
+                    PE_P | PE_RW);
+    for (ptab_idx = 0; j < MAX_PHYSICAL_MEMORY && ptab_idx < PAGE_N_ENTRIES;
+         ptab_idx++, j += PAGE_SIZE) {
+      mode = PE_P | PE_RW;
+      if (j >= SCREEN_MEM_START && j < SCREEN_MEM_END)
+        mode = mode | PE_US;
+      init_ptab_entry(kernel_ptabs[i], j, j, mode);
+    }
   }
 }
 
@@ -140,6 +154,16 @@ void init_memory(void){
  * user process or thread. */
 void setup_page_table(pcb_t * p){
   uint32_t *pdir = page_addr(page_alloc(FALSE));
+  uint32_t *ptab;
+  // Round up the number of tables we'll need
+  uint32_t num_tabs = (p->swap_size + PTABLE_SPAN - 1) / PTABLE_SPAN;
+  int i;
+  int j;
+  for (i = 0; i < num_tabs; i++) {
+    ptab = page_addr(page_alloc(FALSE));
+    for ();
+  }
+  p->page_directory = pdir;
 }
 
 /* TODO: Swap into a free page upon a page fault.
