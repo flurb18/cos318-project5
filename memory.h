@@ -7,6 +7,7 @@
 #define MEMORY_H
 
 #include "kernel.h"
+#include "thread.h"
 
 enum {
   /* physical page facts */
@@ -31,9 +32,6 @@ enum {
   MEM_START = 0x100000, /* 1MB */
   PAGEABLE_PAGES = 33,
   MAX_PHYSICAL_MEMORY = (MEM_START + PAGEABLE_PAGES * PAGE_SIZE),
-
-  SCREEN_MEM_START = 0xA0000,
-  SCREEN_MEM_END = 0xC0000,
   
   /* number of kernel page tables */
   N_KERNEL_PTS = 1,
@@ -54,8 +52,10 @@ enum {
 typedef struct {
   uint32_t	swap_loc;
   uint32_t	vaddr;
+  uint32_t *pdir;
   bool_t is_free;
-  bool_t pinned;  
+  bool_t pinned;
+  lock_t page_lock;
   // Fill in ...
 } page_map_entry_t;
 
