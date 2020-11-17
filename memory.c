@@ -279,18 +279,19 @@ void page_swap_out(int i){
 int page_replacement_policy(void){
    int i;
    int accessed;
+   int dirty;
 
    for (i = first; i < PAGEABLE_PAGES; i++) {
-      if (!page_map[i].pinned) {
-         /* accessed = (page_map[i] & (1 << 7)) >> 7;
+      if (!page_map[i]->pinned) {
+         /* accessed = (page_map[i]->vaddr & (1 << 5)) >> 5;
             if (!accessed) */ 
             return i;
       }
    }
 
    for (i = 0; i < last; i++) {
-      if (!page_map[i].pinned) {
-         /* accessed = (page_map[i] & (1 << 7)) >> 7;
+      if (!page_map[i]->pinned) {
+         /* accessed = (page_map[i]->vaddr & (1 << 5)) >> 5;
             if (! accessed) */
             return i; 
       }
@@ -299,9 +300,29 @@ int page_replacement_policy(void){
 
    /*
    // uncomment for nru implementation 
-   for (i = 0; i < zero_last; i++) {
-     if (!class_zero[i]->pinned) return i;
+   for (i = 0; i < PAGEABLE_PAGES; i++) {
+     accessed = (class_zero[i]->vaddr & (1 << 5)) >> 5;
+     dirty = (class_zero[i]->vaddr & (1 << 6)) >> 6;
+     if (accessed && dirty) {
+       class_three[i] = class_zero[i];
+       class_zero[i] = NULL;
+       three_last = i;
+     }
+     else if (accessed && !dirty) {
+       class_two[i] = class_zero[i];
+       class_zero[i] = NULL;
+       two_last = i;
+     }
+     else if (!accessed && dirty) {
+       class_one[i] = class_zero[i];
+       class_zero[i] = NULL;
+       one_last = i;
+     }
+     else {
+       if (!class_zero[i]->pinned) return i;
+     }
    }
+
    for (i = 0; i < one_last; i++) {
      if (!class_one[i]->pinned) return i;
    }
