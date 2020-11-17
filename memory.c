@@ -35,6 +35,20 @@ static uint32_t *kernel_pdir;
 static uint32_t *kernel_ptabs[N_KERNEL_PTS];
 
 //other global variables...
+// pointers for FIFO page_replacement_policy
+static int first;
+static int last;
+
+/* //uncomment for NRU extra credit
+static page_map_entry_t class_zero[PAGEABLE_PAGES];
+static page_map_entry_t class_one[PAGEABLE_PAGES];
+static page_map_entry_t class_two[PAGEABLE_PAGES];
+static page_map_entry_t class_three[PAGEABLE_PAGES];
+
+static int zero_last;
+static int one_last;
+static int two_last;
+static int three_last; */
 
 /* Main API */
 
@@ -199,5 +213,39 @@ void page_swap_out(int i){
 
 /* TODO: Decide which page to replace, return the page number  */
 int page_replacement_policy(void){
- 
+   int i;
+   int accessed;
+
+   for (i = first; i < PAGEABLE_PAGES; i++) {
+      if (!page_map[i]->pinned) {
+         /* accessed = (page_map[i] & (1 << 7)) >> 7;
+            if (!accessed) */ 
+            return i;
+      }
+   }
+
+   for (i = 0; i < last; i++) {
+      if (!page_map[i]->pinned) {
+         /* accessed = (page_map[i] & (1 << 7)) >> 7;
+            if (! accessed) */
+            return i; 
+      }
+   }
+   return first; // never reaches this
+
+   /*
+   // uncomment for nru implementation 
+   for (i = 0; i < zero_last; i++) {
+     if (!class_zero[i]->pinned) return i;
+   }
+   for (i = 0; i < one_last; i++) {
+     if (!class_one[i]->pinned) return i;
+   }
+   for (i = 0; i < two_last; i++) {
+     if (!class_two[i]->pinned) return i;
+   }
+   for (i = 0; i < three_last; i++) {
+     if (!class_three[i]->pinned) return i;
+   } 
+   return 0; */
 }
