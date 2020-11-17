@@ -130,21 +130,21 @@ int page_alloc(int pinned){
  * supposed to set up the page directory and page tables for the kernel.
  */
 void init_memory(void){
-  int i;
-  int ptab_idx;
-  uint32_t j = 0;
+  uint32_t dir_idx;
+  uint32_t tab_idx;
+  uint32_t addr = 0;
   uint32_t mode;
   kernel_pdir = page_addr(page_alloc(TRUE));
-  for (i = 0; i < N_KERNEL_PTS; i++) {
-    kernel_ptabs[i] = page_addr(page_alloc(TRUE));
-    insert_ptab_dir(kernel_pdir, kernel_ptabs[i], (uint32_t) kernel_ptabs[i],
-                    PE_P | PE_RW);
-    for (ptab_idx = 0; j < MAX_PHYSICAL_MEMORY && ptab_idx < PAGE_N_ENTRIES;
-         ptab_idx++, j += PAGE_SIZE) {
+  for (dir_idx = 0; dir_idx < N_KERNEL_PTS; dir_idx++) {
+    kernel_ptabs[dir_idx] = page_addr(page_alloc(TRUE));
+    insert_ptab_dir(kernel_pdir, kernel_ptabs[dir_idx],
+                    (uint32_t) kernel_ptabs[dir_idx], PE_P | PE_RW | PE_US);
+    for (tab_idx = 0; addr < MAX_PHYSICAL_MEMORY && tab_idx < PAGE_N_ENTRIES;
+         tab_idx++, addr += PAGE_SIZE) {
       mode = PE_P | PE_RW;
-      if (j >= SCREEN_MEM_START && j < SCREEN_MEM_END)
+      if (addr >= SCREEN_MEM_START && addr < SCREEN_MEM_END)
         mode = mode | PE_US;
-      init_ptab_entry(kernel_ptabs[i], j, j, mode);
+      init_ptab_entry(kernel_ptabs[dir_idx], addr, addr, mode);
     }
   }
 }
@@ -155,13 +155,21 @@ void init_memory(void){
 void setup_page_table(pcb_t * p){
   uint32_t *pdir = page_addr(page_alloc(FALSE));
   uint32_t *ptab;
+  uint32_t *page;
   // Round up the number of tables we'll need
   uint32_t num_tabs = (p->swap_size + PTABLE_SPAN - 1) / PTABLE_SPAN;
-  int i;
-  int j;
-  for (i = 0; i < num_tabs; i++) {
+  uint32_t dir_idx;
+  uint32_t vaddr = 0;
+  uint32_t tab_idx;
+  for (dir_idx = 0; dir_idx < num_tabs; dir_idx++) {
     ptab = page_addr(page_alloc(FALSE));
-    for ();
+    insert_ptab_dir(pdir, ptab, vaddr, PE_P | PE_RW | PE_US);
+    for (tab_idx = 0; vaddr < p->swap_size && tab_idx < PAGE_N_ENTRIES;
+         tab_idx++, vaddr += PAGE_SIZE) {
+      page = page_addr(page_alloc(FALSE));
+      init_ptab_entry(ptab, vaddr, (uint32_t)page, PE_P | PE_RW | PE_US);
+      
+    }
   }
   p->page_directory = pdir;
 }
