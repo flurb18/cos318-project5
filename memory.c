@@ -146,28 +146,19 @@ void init_memory(void){
   uint32_t dir_idx;
   uint32_t tab_idx;
   uint32_t addr = 0;
-  uint32_t mode;
   int i;
   for (i = 0; i < PAGEABLE_PAGES; i++) {
     page_map[i].is_free = TRUE;
     page_map[i].pinned = FALSE;
     lock_init(&page_map[i].page_lock);
   }
-  
   kernel_pdir = page_addr(page_alloc(TRUE));
   for (dir_idx = 0; dir_idx < N_KERNEL_PTS; dir_idx++) {
     kernel_ptabs[dir_idx] = page_addr(page_alloc(TRUE));
-    // Since some of the memory (the screen) is user accessible, the entire
-    // directory must be marked as such
-    insert_ptab_dir(kernel_pdir, kernel_ptabs[dir_idx],
-                    (uint32_t) kernel_ptabs[dir_idx], PE_P | PE_RW | PE_US);
+    insert_ptab_dir(kernel_pdir, kernel_ptabs[dir_idx], addr, PE_P | PE_RW);
     for (tab_idx = 0; addr < MAX_PHYSICAL_MEMORY && tab_idx < PAGE_N_ENTRIES;
-         tab_idx++, addr += PAGE_SIZE) {
-      mode = PE_P | PE_RW;
-      if (addr == SCREEN_ADDR)
-        mode = mode | PE_US;
-      init_ptab_entry(kernel_ptabs[dir_idx], addr, addr, mode);
-    }
+         tab_idx++, addr += PAGE_SIZE)
+      init_ptab_entry(kernel_ptabs[dir_idx], addr, addr, PE_P | PE_RW);
   }
 }
 
@@ -175,17 +166,34 @@ void init_memory(void){
 /* TODO: Set up a page directory and page table for a new 
  * user process or thread. */
 void setup_page_table(pcb_t * p){
+  enter_critical();
   if (p->is_thread) {
     p->page_directory = kernel_pdir;
+    leave_critical();
     return;
   }
   uint32_t *pdir = page_addr(page_alloc(TRUE));
   uint32_t *ptab;
-  // Round up the number of tables we'll need
+  // Round up the number of tables we'll need for the process itself
   uint32_t num_tabs = (p->swap_size + PTABLE_SPAN - 1) / PTABLE_SPAN;
   uint32_t dir_idx;
-  uint32_t vaddr = PROCESS_START;
   uint32_t tab_idx;
+  uint32_t mode;
+  uint32_t vaddr = 0;
+  // Setup kernel/screen pages
+  for (dir_idx = 0; dir_idx < N_KERNEL_PTS; dir_idx++) {
+    ptab = page_addr(page_alloc(TRUE));
+    insert_ptab_dir(pdir, ptab, vaddr, PE_P | PE_RW | PE_US);
+    for (tab_idx = 0; vaddr < PROCESS_START && tab_idx < PAGE_N_ENTRIES;
+         tab_idx++, vaddr += PAGE_SIZE) {
+      mode = PE_P | PE_RW;
+      if (vaddr == SCREEN_ADDR)
+        mode |= PE_US;
+      init_ptab_entry(ptab, vaddr, vaddr, mode);
+    }
+  }
+  // Setup process pages
+  vaddr = PROCESS_START;
   for (dir_idx = 0; dir_idx < num_tabs; dir_idx++) {
     ptab = page_addr(page_alloc(TRUE));
     insert_ptab_dir(pdir, ptab, vaddr, PE_P | PE_RW | PE_US);
@@ -194,7 +202,22 @@ void setup_page_table(pcb_t * p){
       // Pages will get swapped in as they fault
       init_ptab_entry(ptab, vaddr, 0, PE_RW | PE_US);
   }
+  // Setup process stack pages
+  vaddr = PROCESS_STACK & PE_BASE_ADDR_MASK;
+  int stack_page_n = 0;
+  for (dir_idx = 0;
+       dir_idx < (N_PROCESS_STACK_PAGES + PAGE_N_ENTRIES - 1) / PAGE_N_ENTRIES;
+       dir_idx++) {
+    ptab = page_addr(page_alloc(TRUE));
+    insert_ptab_dir(pdir, ptab, vaddr, PE_RW | PE_P | PE_US);
+    for (tab_idx = 0;
+         tab_idx < PAGE_N_ENTRIES && stack_page_n < N_PROCESS_STACK_PAGES;
+         tab_idx++, stack_page_n++, vaddr -= PAGE_SIZE)
+      // Pages will get swapped in as they fault
+      init_ptab_entry(ptab, vaddr, 0, PE_RW | PE_US);
+  }
   p->page_directory = pdir;
+  leave_critical();
 }
 
 /* TODO: Swap into a free page upon a page fault.
