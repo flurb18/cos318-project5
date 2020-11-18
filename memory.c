@@ -45,7 +45,6 @@ static page_map_entry_t class_one[PAGEABLE_PAGES];
 static page_map_entry_t class_two[PAGEABLE_PAGES];
 static page_map_entry_t class_three[PAGEABLE_PAGES];
 
-static int zero_last;
 static int one_last;
 static int two_last;
 static int three_last; */
@@ -286,18 +285,22 @@ int page_replacement_policy(void){
    int dirty;
 
    for (i = first; i < PAGEABLE_PAGES; i++) {
-      if (!page_map[i].pinned) {
-         /* accessed = (page_map[i]->vaddr & (1 << 5)) >> 5;
-            if (!accessed) */ 
+      if (page_map[i] != NULL) {
+        if (!page_map[i]->pinned) {
+           /* accessed = (page_map[i]->vaddr & (1 << 5)) >> 5;
+              if (!accessed) */ 
             return i;
+        }
       }
    }
 
    for (i = 0; i < last; i++) {
-      if (!page_map[i].pinned) {
-         /* accessed = (page_map[i]->vaddr & (1 << 5)) >> 5;
-            if (! accessed) */
-            return i; 
+      if (page_map[i] != NULL) {
+        if (!page_map[i]->pinned) {
+           /* accessed = (page_map[i]->vaddr & (1 << 5)) >> 5;
+              if (! accessed) */
+           return i;
+        }
       }
    }
    return first; // never reaches this
@@ -305,36 +308,43 @@ int page_replacement_policy(void){
    /*
    // uncomment for nru implementation 
    for (i = 0; i < PAGEABLE_PAGES; i++) {
-     accessed = (class_zero[i]->vaddr & (1 << 5)) >> 5;
-     dirty = (class_zero[i]->vaddr & (1 << 6)) >> 6;
-     if (accessed && dirty) {
-       class_three[i] = class_zero[i];
-       class_zero[i] = NULL;
-       three_last = i;
-     }
-     else if (accessed && !dirty) {
-       class_two[i] = class_zero[i];
-       class_zero[i] = NULL;
-       two_last = i;
-     }
-     else if (!accessed && dirty) {
-       class_one[i] = class_zero[i];
-       class_zero[i] = NULL;
-       one_last = i;
-     }
-     else {
-       if (!class_zero[i]->pinned) return i;
+     if (class_zero[i] != NULL) {
+       accessed = (class_zero[i]->vaddr & (1 << 5)) >> 5;
+       dirty = (class_zero[i]->vaddr & (1 << 6)) >> 6;
+       if (accessed && dirty) {
+         class_three[i] = class_zero[i];
+         class_zero[i] = NULL;
+         three_last = i;
+       }
+       else if (accessed && !dirty) {
+         class_two[i] = class_zero[i];
+         class_zero[i] = NULL;
+         two_last = i;
+       }
+       else if (!accessed && dirty) {
+         class_one[i] = class_zero[i];
+         class_zero[i] = NULL;
+         one_last = i;
+       }
+       else {
+        if (!class_zero[i]->pinned) return i;
+       }
      }
    }
-
    for (i = 0; i < one_last; i++) {
-     if (!class_one[i]->pinned) return i;
+     if (class_one[i] != NULL) {
+       if (!class_one[i]->pinned) return i;
+     }
    }
    for (i = 0; i < two_last; i++) {
-     if (!class_two[i]->pinned) return i;
+     if (class_two[i] != NULL) { 
+      if (!class_two[i]->pinned) return i;
+     }
    }
    for (i = 0; i < three_last; i++) {
-     if (!class_three[i]->pinned) return i;
-   } 
+     if (class_three[i] != NULL) {
+       if (!class_three[i]->pinned) return i;
+     } 
+   }
    return 0; */
 }
