@@ -173,8 +173,12 @@ void setup_page_table(pcb_t * p){
   }
   uint32_t *pdir = page_addr(page_alloc(TRUE));
   uint32_t *ptab;
+  // Size of process in bytes
+  uint32_t proc_size = p->swap_size / SECTORS_PER_PAGE;
   // Round up the number of tables we'll need for the process itself
-  uint32_t num_tabs = (p->swap_size + PTABLE_SPAN - 1) / PTABLE_SPAN;
+  uint32_t num_tabs = (proc_size + PTABLE_SPAN - 1) / PTABLE_SPAN;
+  uint32_t num_stack_tabs =
+    (N_PROCESS_STACK_PAGES + PAGE_N_ENTRIES - 1) / PAGE_N_ENTRIES;
   uint32_t dir_idx;
   uint32_t tab_idx;
   uint32_t mode;
@@ -196,7 +200,8 @@ void setup_page_table(pcb_t * p){
   for (dir_idx = 0; dir_idx < num_tabs; dir_idx++) {
     ptab = page_addr(page_alloc(TRUE));
     insert_ptab_dir(pdir, ptab, vaddr, PE_P | PE_RW | PE_US);
-    for (tab_idx = 0; vaddr < p->swap_size && tab_idx < PAGE_N_ENTRIES;
+    for (tab_idx = 0;
+         vaddr < PROCESS_START + proc_size && tab_idx < PAGE_N_ENTRIES;
          tab_idx++, vaddr += PAGE_SIZE)
       // Pages will get swapped in as they fault
       init_ptab_entry(ptab, vaddr, 0, PE_RW | PE_US);
@@ -204,9 +209,7 @@ void setup_page_table(pcb_t * p){
   // Setup process stack pages
   vaddr = PROCESS_STACK & PE_BASE_ADDR_MASK;
   int stack_page_n = 0;
-  for (dir_idx = 0;
-       dir_idx < (N_PROCESS_STACK_PAGES + PAGE_N_ENTRIES - 1) / PAGE_N_ENTRIES;
-       dir_idx++) {
+  for (dir_idx = 0; dir_idx < num_stack_tabs; dir_idx++) {
     ptab = page_addr(page_alloc(TRUE));
     insert_ptab_dir(pdir, ptab, vaddr, PE_RW | PE_P | PE_US);
     for (tab_idx = 0;
@@ -280,29 +283,15 @@ void page_swap_out(int i){
 /* TODO: Decide which page to replace, return the page number  */
 int page_replacement_policy(void){
    int i;
-   int accessed;
-   int dirty;
-
-   for (i = first; i < PAGEABLE_PAGES; i++) {
-      if (page_map[i] != NULL) {
-        if (!page_map[i]->pinned) {
-           /* accessed = (page_map[i]->vaddr & (1 << 5)) >> 5;
-              if (!accessed) */ 
-            return i;
-        }
-      }
+   for (i = 0; i < PAGEABLE_PAGES; i++) {
+     if (page_map[i].is_free)
+       return i;
    }
-
-   for (i = 0; i < last; i++) {
-      if (page_map[i] != NULL) {
-        if (!page_map[i]->pinned) {
-           /* accessed = (page_map[i]->vaddr & (1 << 5)) >> 5;
-              if (! accessed) */
-           return i;
-        }
-      }
+   for (i = 0; i < PAGEABLE_PAGES; i++) {
+     if (!page_map[i].pinned)
+       return i;
    }
-   return first; // never reaches this
+   return 0;
 
    /*
    // uncomment for nru implementation 
