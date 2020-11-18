@@ -166,10 +166,10 @@ void init_memory(void){
 /* TODO: Set up a page directory and page table for a new 
  * user process or thread. */
 void setup_page_table(pcb_t * p){
-  enter_critical();
+  long eflags = CLI_FL();
   if (p->is_thread) {
     p->page_directory = kernel_pdir;
-    leave_critical();
+    STI_FL(eflags);
     return;
   }
   uint32_t *pdir = page_addr(page_alloc(TRUE));
@@ -217,7 +217,7 @@ void setup_page_table(pcb_t * p){
       init_ptab_entry(ptab, vaddr, 0, PE_RW | PE_US);
   }
   p->page_directory = pdir;
-  leave_critical();
+  STI_FL(eflags);
 }
 
 /* TODO: Swap into a free page upon a page fault.
@@ -228,9 +228,12 @@ void page_fault_handler(void){
   int p_idx = page_replacement_policy();
   lock_acquire(&page_map[p_idx].page_lock);
   page_swap_out(p_idx);
+  long eflags = CLI_FL();
+  current_running->page_fault_count++;
   page_map[p_idx].vaddr = current_running->fault_addr;
   page_map[p_idx].swap_loc = current_running->swap_loc;
   page_map[p_idx].pdir = current_running->page_directory;
+  STI_FL(eflags);
   page_swap_in(p_idx);
   lock_release(&page_map[p_idx].page_lock);
 }
@@ -282,7 +285,7 @@ int page_replacement_policy(void){
    int dirty;
 
    for (i = first; i < PAGEABLE_PAGES; i++) {
-      if (!page_map[i]->pinned) {
+      if (!page_map[i].pinned) {
          /* accessed = (page_map[i]->vaddr & (1 << 5)) >> 5;
             if (!accessed) */ 
             return i;
@@ -290,7 +293,7 @@ int page_replacement_policy(void){
    }
 
    for (i = 0; i < last; i++) {
-      if (!page_map[i]->pinned) {
+      if (!page_map[i].pinned) {
          /* accessed = (page_map[i]->vaddr & (1 << 5)) >> 5;
             if (! accessed) */
             return i; 
